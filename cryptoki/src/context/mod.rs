@@ -36,6 +36,7 @@ use std::path::Path;
 use std::ptr;
 use std::sync::Arc;
 use std::sync::RwLock;
+use std::convert::TryFrom;
 
 /// Enum for various function lists
 /// Each following is super-set of the previous one with overlapping start so we store them
@@ -115,7 +116,7 @@ impl Pkcs11 {
         unsafe {
             let pkcs11_lib =
                 cryptoki_sys::Pkcs11::new(filename.as_ref()).map_err(Error::LibraryLoading)?;
-            Self::_new(pkcs11_lib)
+            Self::try_from(pkcs11_lib)
         }
     }
 
@@ -222,6 +223,16 @@ impl Pkcs11 {
     /// Check whether a given PKCS11 spec-defined function is supported by this implementation
     pub fn is_fn_supported(&self, function: Function) -> bool {
         is_fn_supported(self, function)
+    }
+}
+
+impl TryFrom<cryptoki_sys::Pkcs11> for Pkcs11 {
+    type Error = Error;
+
+    fn try_from(value: cryptoki_sys::Pkcs11) -> Result<Self> {
+        unsafe {
+            Self::_new(value)
+        }
     }
 }
 
